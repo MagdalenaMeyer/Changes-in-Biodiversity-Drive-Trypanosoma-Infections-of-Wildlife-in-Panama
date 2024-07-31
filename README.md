@@ -1,4 +1,4 @@
-# Changes-in-Biodiversity-Drive-Trypanosoma-Infections-of-Wildlife-in-Panama
+# Changes in Biodiversity Drive Trypanosoma Infections of Wildlife in Panama
 Here we deposit the data presented in the upcoming research paper entitled "Changes in Biodiversity Drive Trypanosoma Infections of Wildlife in Panama"
 
 We provide two datasets (Meyer_Dataset_Trypanosoma_Panama and Meyer_Dataset_Correlation_Trypanosoma_Panama), which form the backbone of the analysis performed in the associated R Markdown (Meyer_RScript_Trypanosoma_Panama).
