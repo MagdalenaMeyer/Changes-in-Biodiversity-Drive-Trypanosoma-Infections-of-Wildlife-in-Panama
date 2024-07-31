@@ -1,0 +1,794 @@
+---
+title: "Trypanosoma final"
+author: "MM"
+date: "2023-10-12"
+output: html_document
+---
+
+```{r}
+library(vegan)
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+library(readxl)
+library(moments)
+library(gridExtra)
+library(tidyr)
+library(lme4)
+library(MuMIn)
+library(effects)
+library(emmeans)
+library(performance)
+library(dplyr)
+library(jtools)
+library(sjPlot)
+library(sjstats)
+library(car)
+library(emmeans)
+library(performance)
+library(plyr)
+library(lme4)
+library(MuMIn)
+library(effects)
+library(emmeans)
+library(performance)
+library(dplyr)
+library(jtools)
+library(sjPlot)
+library(sjstats)
+library(car)
+library(emmeans)
+library(performance)
+library('tidyverse')
+
+fulldata<-as.data.frame(fulldata)
+metadata_common<-subset(fulldata, capture_site!="BCI" & tryp_inf!="NA")
+metadata_common$landscape <- factor(metadata_common$landscape,
+                                     levels = c("continuous.forest", "island", "forest.fragment", "plantation"),
+                                     labels = c("Continuous Forest", "Forested Islands", "Forest Fragments", "Plantations"))
+metadata_common<-as.data.frame(metadata_common)
+
+```
+
+
+```{r}
+# COLORS
+
+colors_infraclass<-c("Placentalia"="#ECC467",
+                      "Marsupialia"="#387579")
+
+species_dist_colors2 <- c("Didelphis.marsupialis"="#1E4B4F",
+                        "Heteromys.desmarestianus"="#FFE3A1",
+                        "Hoplomys.gymnurus"="#F1CD77",
+                        "Marmosa.robinsoni.isthmica"="#266169",
+                        "Metachirus.nudicaudatus"="#317D87",
+                        "Philander.opossum"="#6EACA7",
+                        "Proechimys.semispinosus"="#DAA730",
+                        "Transandinomys.talamancae"="#E6BA54")
+
+colors_landscape_I3<-c("Continuous Forest"="#4A6240",
+                      "Forested Islands"="#A7ECE8",
+                      "Forest Fragments"="#D8C444",
+                      "Plantations"="#6A0909")
+
+
+```
+
+
+```{r}
+
+# PREVALENCES
+
+### per species
+prev_tryp <- ddply(metadata_common, c("landscape", "capture_site", "species"), summarise,
+                   pos = sum(na.omit(tryp_inf)),
+                   total = length(na.omit(tryp_inf)),
+                   prevalence = pos / total * 100)
+
+### per infraclass
+prev_tryp_ic <- ddply(metadata_common, c("landscape", "capture_site", "infraclass"), summarise,
+                   pos = sum(na.omit(tryp_inf)),
+                   total = length(na.omit(tryp_inf)),
+                   prevalence = pos / total * 100)
+
+prev_tryp_ic2 <- ddply(metadata_common, c("landscape", "infraclass"), summarise,
+                   pos = sum(na.omit(tryp_inf)),
+                   total = length(na.omit(tryp_inf)),
+                   prevalence = pos / total * 100)
+
+
+### plot prevalence across landscapes
+
+# Create boxplots grouped by landscape
+prev_landscape <-ggplot(Corr_S, aes(x = landscape, y=Tryp_Prev)) +
+    geom_boxplot(aes(fill=landscape), size=1) +theme_classic()+
+  geom_jitter(aes(fill= landscape), color="black", size=5, width=0.15, shape=21)+
+  #scale_color_manual(values=c("#64a860", "#329adf", "#f1d112", "#cc545e"))+
+     ylab("Trypanosoma Prevalence")+  scale_fill_manual(values = colors_landscape_I3)+
+  xlab("") +ggtitle("")+
+  theme_bw() +
+  ggtitle("")+
+  annotate(geom="text", x=0.5, y=70, label="", color="black", size =8)+
+  theme(plot.title = element_text(hjust = 0.5, size = 25, face = "bold"),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 25),
+        legend.position='none',
+        axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        text = element_text(colour = "black", size=25),
+        axis.text = element_text(colour = "black", size=20),
+        axis.text.x = element_text(size=25, vjust = 0.5))
+prev_landscape
+
+
+# Create a separate plot for each landscape and infraclass
+
+cf_ic <- ggplot(prev_tryp_ic[prev_tryp_ic$landscape == "Continuous Forest", ],
+                 aes(x = infraclass, y = prevalence, fill=infraclass)) +
+  geom_boxplot() +
+  theme_classic() +
+  geom_jitter(color = "black", size = 5, width = 0.1, shape = 21) +
+  scale_fill_manual(values = colors_infraclass) +
+  ylab("Trypanosoma Prevalence") +
+  xlab("") +
+  ggtitle("") +
+  theme_bw() +
+  ggtitle("") +
+  annotate(geom = "text", x = 0.5, y = 100, label = "", color = "black", size = 8) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 25, face = "bold"),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 20),
+    legend.position = "none",
+    axis.line = element_line(colour = "black"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    text = element_text(colour = "black", size = 20),
+    axis.text = element_text(colour = "black", size = 12),
+    axis.text.x = element_blank(),
+  )
+#export: width: 500 height:750
+
+i_ic<- ggplot(prev_tryp_ic[prev_tryp_ic$landscape == "Island", ],
+                 aes(x = infraclass, y = prevalence, fill=infraclass)) +
+  geom_boxplot() +
+  theme_classic() +
+  geom_jitter(color = "black", size = 5, width = 0.1, shape = 21) +
+  scale_fill_manual(values = colors_infraclass) +
+  ylab("") +
+  xlab("") +
+  ggtitle("") +
+  theme_bw() +
+  ggtitle("") +
+  annotate(geom = "text", x = 0.5, y = 100, label = "", color = "black", size = 8) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 25, face = "bold"),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 20),
+    legend.position = "none",
+    axis.line = element_line(colour = "black"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    text = element_text(colour = "black", size = 20),
+    axis.text = element_text(colour = "black", size = 12),
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank()
+  )
+
+#export: width: 500 height:750
+
+ff_ic<- ggplot(prev_tryp_ic[prev_tryp_ic$landscape == "Forest Fragment", ],
+                 aes(x = infraclass, y = prevalence, fill=infraclass)) +
+  geom_boxplot() +
+  theme_classic() +
+  geom_jitter(color = "black", size = 5, width = 0.1, shape = 21) +
+  scale_fill_manual(values = colors_infraclass) +
+  ylab("") +
+  xlab("") +
+  ggtitle("") +
+  theme_bw() +
+  ggtitle("") +
+  annotate(geom = "text", x = 0.5, y = 100, label = "", color = "black", size = 8) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 25, face = "bold"),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 20),
+    legend.position = "none",
+    axis.line = element_line(colour = "black"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    text = element_text(colour = "black", size = 20),
+    axis.text = element_text(colour = "black", size = 12),
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank()
+  )
+ff_ic
+#export: width: 500 height:750
+
+p_ic<- ggplot(prev_tryp_ic[prev_tryp_ic$landscape == "Plantation", ],
+                 aes(x = infraclass, y = prevalence, fill=infraclass)) +
+  geom_boxplot() +
+  theme_classic() +
+  geom_jitter(color = "black", size = 5, width = 0.1, shape = 21) +
+  scale_fill_manual(values = colors_infraclass) +
+  ylab("") +
+  xlab("") +
+  ggtitle("") +
+  theme_bw() +
+  ggtitle("") +
+  annotate(geom = "text", x = 0.5, y = 100, label = "", color = "black", size = 8) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 25, face = "bold"),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 20),
+    legend.position = "none",
+    axis.line = element_line(colour = "black"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    text = element_text(colour = "black", size = 20),
+    axis.text = element_text(colour = "black", size = 12),
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank()
+  )
+#export: width: 500 height:750
+
+
+```
+
+```{r}
+
+
+#STATS
+
+##prevalences
+
+##overall
+
+overall_prev<-summary(aov(Tryp_Prev ~ landscape, data = Corr_S))
+
+anova_result <- aov(Tryp_Prev ~ landscape, data = Corr_S)
+
+# Perform Tukey-Kramer post-hoc test
+posthoc_test <- TukeyHSD(anova_result)
+posthoc_test
+
+## within each infraclass over the landscapes
+
+marsus<-aov(prevalence ~ landscape, data = prev_tryp_ic[prev_tryp_ic$infraclass == "Marsupialia", ])
+aov_marsu<-summary(aov(prevalence ~ landscape, data = prev_tryp_ic[prev_tryp_ic$infraclass == "Marsupialia", ]))
+posthoc_test_marsus <- TukeyHSD(marsus)
+#p=0.68
+
+aov_spec<-summary(aov(prevalence ~ landscape, data = prev_tryp_ic[prev_tryp_ic$infraclass == "Placentalia", ]))
+#p=0.0132 *
+# Perform Tukey's HSD post hoc test on the ANOVA object
+aov_spec <- aov(prevalence ~ landscape, data = prev_tryp_ic[prev_tryp_ic$infraclass == "Placentalia", ])
+tukey_spec <- TukeyHSD(aov_spec)
+
+
+#conservation status
+anova_result4 <- aov(Tryp_Prev ~ Protection, data = Corr_S)
+posthoc_test4 <- TukeyHSD(anova_result4)
+
+# Subset data for protected and unprotected sites
+protected_prevalence <- Corr_S$Tryp_Prev[Corr_S$Protection == "Protected"]
+unprotected_prevalence <- Corr_S$Tryp_Prev[Corr_S$Protection == "Unprotected"]
+
+# Perform a t-test
+t_test <- t.test(protected_prevalence, unprotected_prevalence)
+
+# View the results
+t_test
+
+
+```
+
+```{r}
+
+# now protected versus unprotcted:
+
+### plot prevalence across landscapes
+
+# Create boxplots grouped by landscape
+prev_protection <- ggplot(Corr_S, aes(x = Protection, y=Tryp_Prev)) +
+    geom_boxplot(aes(fill=Protection), size=1) +
+    theme_classic() +
+    geom_jitter(aes(fill= Protection), color="black", size=5, width=0.15, shape=21) +
+    scale_fill_manual(values = c("#63A375", "#BA324F")) +
+    ylab("Trypanosoma Prevalence (%)") +
+    xlab("") +
+    ggtitle("") +
+    theme_bw() +
+    ylim(0, 100) +  # Setting y-axis limits
+    annotate(geom="text", x=0.5, y=70, label="", color="black", size=8) +
+    theme(
+        plot.title = element_text(hjust = 0.5, size = 22, face = "bold"),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        legend.position = "none",
+        axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        text = element_text(colour = "black", size=12),
+        axis.text.x = element_text(colour = "black", size=20),
+        axis.title = element_text(face="bold", size=16)
+    )
+prev_protection
+
+
+
+protected<-subset(Corr_S, Protection == "Protected")
+unprotected<-subset(Corr_S, Protection == "Unprotected")
+
+
+Sha_pro <- ggplot(data=protected, aes(SHA, Tryp_Prev)) +
+  ylim(-10, 100) +
+  xlim(0, 1) +
+  geom_smooth(method="lm", colour="black", size=1, fill="lightgrey", linetype="dashed") +
+  geom_point(color="#63A375", shape=19, size=5) +  # Set color directly here
+  stat_cor(method="spearman", label.y.npc="top", label.x.npc = "middle", size=5) +
+  theme_classic() +
+  theme(legend.position = "none",
+        axis.title = element_text(face="bold", size=16), 
+        axis.text = element_text(size=12), 
+        plot.title = element_text(hjust=0.5, size=22, face="bold")) +
+  ylab("") +
+  xlab("Shannon Diversity Index") +
+  annotate(geom="text", x=0.4, y=100, label="", color="black", size=8)
+Sha_pro
+
+cor.test(protected$SHA, protected$Tryp_Prev, method="spearman")
+
+Sha_unpro <- ggplot(data=unprotected, aes(SHA, Tryp_Prev)) +
+  ylim(-10, 100) +
+  xlim(0.5, 1.5) +
+  geom_smooth(method="lm", colour="black", size=1, fill="lightgrey") +
+  geom_point(color="#BA324F", shape=19, size=5) +  # Set color directly here
+  stat_cor(method="spearman", label.y.npc="top", label.x.npc = "middle", size=5) +
+  theme_classic() +
+  theme(legend.position = "none",
+        axis.title = element_text(face="bold", size=16), 
+        axis.text = element_text(size=12), 
+        plot.title = element_text(hjust=0.5, size=22, face="bold")) +
+  ylab("") +
+  xlab("Shannon Diversity Index") +
+  annotate(geom="text", x=0.4, y=100, label="", color="black", size=8)
+Sha_unpro
+
+cor.test(unprotected$SHA, unprotected$Tryp_Prev, method="spearman")
+
+grid.arrange(prev_protection, Sha_pro, Sha_unpro, nrow=1)
+
+#export 1200 / 400
+
+```
+
+
+```{r}
+# COMMUNITY ASSEMBLAGE
+
+continuous_forest <- subset(metadata_common, landscape == "continuous.forest")
+island <- subset(metadata_common, landscape == "island")
+forest_fragment <- subset(metadata_common, landscape == "forest.fragment")
+plantation <- subset(metadata_common, landscape == "plantation")
+
+
+## Species
+
+continuous_forest_species <- ggplot(continuous_forest, aes(x = capture_site, fill = species)) +
+  geom_bar(position = "fill") +
+  ylab("Rel. Abund. of Species") +
+  xlab("") +
+  ggtitle("Continuous Forest") +
+  scale_fill_manual(values = species_dist_colors2) +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5, size = 25, face = "bold", color="black"),
+        legend.title = element_blank(),
+        legend.text = element_text(face = "italic", size = 20),
+        legend.position = "none",
+        axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        text = element_text(colour = "black", size=20),
+        axis.text = element_text(colour = "black", size=11),
+        axis.text.x = element_blank())
+
+island_species <- ggplot(island, aes(x = capture_site, fill = species)) +
+  geom_bar(position = "fill") +
+  ylab("") +
+  xlab("") +
+  ggtitle("Forested Islands") +
+  scale_fill_manual(values = species_dist_colors2) +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5, size = 25, face = "bold", color= "black"),
+        legend.title = element_blank(),
+        legend.text = element_text(face = "italic", size = 20),
+        legend.position = "none",
+        axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        text = element_text(colour = "black", size=20),
+        axis.text = element_text(colour = "black", size=11),
+        axis.text.y = element_blank(),
+        axis.text.x = element_blank())
+
+forest_fragment_species <- ggplot(forest_fragment, aes(x = capture_site, fill = species)) +
+  geom_bar(position = "fill") +
+  ylab("") +
+  xlab("") +
+  ggtitle("Forest Fragments") +
+  scale_fill_manual(values = species_dist_colors2) +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5, size = 25, face = "bold", color="black"),
+        legend.title = element_blank(),
+        legend.text = element_text(face = "italic", size = 20),
+        legend.position = "none",
+        axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        text = element_text(colour = "black", size=20),
+        axis.text = element_text(colour = "black", size=11),
+        axis.text.y = element_blank(),
+        axis.text.x = element_blank())
+
+plantation_species <- ggplot(plantation, aes(x = capture_site, fill = species)) +
+  geom_bar(position = "fill") +
+  ylab("") +
+  xlab("") +
+  ggtitle("Plantations") +
+  scale_fill_manual(values = species_dist_colors2) +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5, size = 25, face = "bold", color="black"),
+        legend.title = element_blank(),
+        legend.text = element_text(face = "italic", size = 20),
+        legend.position='none',
+        axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        text = element_text(colour = "black", size=20),
+        axis.text = element_text(colour = "black", size=11),
+        axis.text.y = element_blank(),
+        axis.text.x = element_blank())
+
+
+#Fig2<-grid.arrange(continuous_forest_species, island_species, forest_fragment_species, plantation_species, ncol=4, nrow=1)
+#export: width: 2000 height:750
+
+
+```
+
+```{r}
+#Community assemblage STATS
+
+
+library(RVAideMemoire)
+
+# Convert species data to a presence/absence matrix
+species_matrix <- with(metadata_common, table(capture_site, species))
+species_matrix <- as.data.frame.matrix(species_matrix)  # Convert to matrix format
+
+# Calculate dissimilarity matrix
+dissimilarity_matrix <- vegdist(species_matrix, method = "jaccard")
+
+# Perform PCoA or NMDS
+pcoa_results <- cmdscale(dissimilarity_matrix, k = 2)  # PCoA
+nmds_results <- metaMDS(species_matrix, distance = "jaccard")  # NMDS
+
+# Plot the results
+plot(pcoa_results, main="PCoA of Species Communities")
+# OR for NMDS: plot(nmds_results)
+
+# Perform PERMANOVA to test for differences among groups
+permanova_results_cs <- adonis2(dissimilarity_matrix ~ capture_site, data = Corr_S)
+permanova_results_ls <- adonis2(dissimilarity_matrix ~ landscape, data = Corr_S)
+
+# Print the results
+print(permanova_results_cs)
+print(permanova_results_ls)
+
+#pairwise comparison
+# Pairwise comparison
+pairwise_comparison <- pairwise.perm.manova(dissimilarity_matrix, Corr_S$landscape)
+print(pairwise_comparison)
+
+
+str(Corr_S)
+summary(aov(mean_density_mars_all_seasons ~ landscape, data=Corr_S))
+anova_result5 <- aov(mean_density_mars_all_seasons ~ landscape, data=Corr_S)
+posthoc_test5 <- TukeyHSD(anova_result5)
+
+summary(aov(mean_density_prse_all_seasons ~ landscape, data=Corr_S))
+anova_result6 <- aov(mean_density_prse_all_seasons ~ landscape, data=Corr_S)
+posthoc_test6 <- TukeyHSD(anova_result6)
+
+
+```
+
+
+```{r}
+# MODELLING INFECTION LIKELIHOOD
+
+## investigating factors that drive infection likelihood over all landscapes and species
+
+m1 <- glmer(tryp_inf ~ shannon + density_mars + density_prse + (1 | capture_site), data = metadata_common, family = binomial, na.action = na.fail)
+check_collinearity(m1)
+summary(m1)
+tab_model(m1)
+
+
+## investigating factors that drive infection likelihood over all species in protected versus unprotected landscapes
+
+#PROTECTED AND UNDISTURBED
+
+# Create an "Undisturbed" subset with Continuous Forest and Island landscapes
+
+undisturbed <- subset(metadata_common, landscape %in% c("Continuous Forest", "Forested Islands"))
+undisturbed<-as.data.frame(undisturbed)
+
+undisturbed1 <- glmer(tryp_inf ~ shannon + density_mars + density_prse + (1 | capture_site), data = undisturbed, family = binomial, na.action = na.fail)
+check_collinearity(undisturbed1)
+summary(undisturbed1)
+tab_model(undisturbed1)
+dredge(undisturbed1)
+
+dat.effects_ud1 <- effect("shannon", mod = undisturbed1, xlevels = list(shannon = seq(0, 1.5, length.out = 100)))
+dat.effects_ud1 <- as.data.frame(dat.effects_ud1)
+
+p_ud1 <- ggplot() +
+  geom_point(data = undisturbed, aes(x = shannon, y = tryp_inf), color = "#63A375", shape = 19, size = 5) +
+  geom_ribbon(data = dat.effects_ud1, aes(x = shannon, ymin = lower, ymax = upper), alpha = 0.2, fill = "lightgrey") +
+  geom_line(data = dat.effects_ud1, aes(x = shannon, y = fit), size = 1, linetype="dashed") + 
+  #scale_color_manual(values = c("#4A6240", "#A7ECE8")) +
+  #scale_y_continuous(breaks = c(0, 1)) +  # Set breaks to only 0 and 1
+ scale_x_continuous(limits = c(0, 1)) +
+  theme_classic() + 
+  theme(legend.position = "none") +
+  xlab("Shannon Species Diversity") +
+  ylab("Trypanosoma Infection Probability") +
+  ggtitle("") +
+  annotate(geom = "text", x = 0, y = 0.9, label = "", color = "black", size = 8) +
+  theme(
+    axis.title = element_text(face = "bold", size = 16),
+    axis.text = element_text(size = 12),
+    #axis.text.y=element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 22, face = "bold")
+  )
+p_ud1
+
+
+dat.effects_ud2 <- effect("density_mars", mod = undisturbed1, xlevels = list(density_mars = seq(0, 2, length.out = 100)))
+dat.effects_ud2 <- as.data.frame(dat.effects_ud2)
+
+p_ud2 <- ggplot() +
+  geom_point(data = undisturbed, aes(x = density_mars, y = tryp_inf), color = "#63A375", shape = 19, size = 5) +
+  geom_ribbon(data = dat.effects_ud2, aes(x = density_mars, ymin = lower, ymax = upper), alpha = 0.2, fill = "lightgrey") +
+  geom_line(data = dat.effects_ud2, aes(x = density_mars, y = fit), size = 1) + 
+  #scale_color_manual(values = c("#4A6240", "#A7ECE8")) +
+  #scale_y_continuous(breaks = c(0, 1)) +  # Set breaks to only 0 and 1
+  theme_classic() + 
+  theme(legend.position = "none") +
+  xlab("Marsupial Density") +
+  ylab("") +
+  ggtitle("") +
+  annotate(geom = "text", x = 0, y = 0.9, label = "", color = "black", size = 8) +
+  theme(
+    axis.title = element_text(face = "bold", size = 16),
+    axis.text = element_text(size = 12),
+    axis.text.y=element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 22, face = "bold")
+  )
+p_ud2
+
+dat.effects_ud3 <- effect("density_prse", mod = undisturbed1, xlevels = list(density_prse = seq(0, 25, length.out = 100)))
+dat.effects_ud3 <- as.data.frame(dat.effects_ud3)
+
+p_ud3 <- ggplot() +
+  geom_point(data = undisturbed, aes(x = density_prse, y = tryp_inf), color = "#63A375", shape = 19, size = 5) +
+  geom_ribbon(data = dat.effects_ud3, aes(x = density_prse, ymin = lower, ymax = upper), alpha = 0.2, fill = "lightgrey") +
+  geom_line(data = dat.effects_ud3, aes(x = density_prse, y = fit), size = 1, linetype="dashed") + 
+  #scale_color_manual(values = c("#4A6240", "#A7ECE8")) +
+  scale_y_continuous(breaks = c(0, 1)) +  # Set breaks to only 0 and 1
+  theme_classic() + 
+  theme(legend.position = "none") +
+  xlab("Density of P. semispinosus") +
+  ylab("") +
+  ggtitle("") +
+  annotate(geom = "text", x = 0, y = 0.9, label = "", color = "black", size = 8) +
+  theme(
+    axis.title = element_text(face = "bold", size = 16),
+    axis.text = element_text(size = 12),
+    axis.text.y=element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 22, face = "bold")
+  )
+p_ud3
+
+
+#UNPROTECTED AND DISTURBED
+
+# Create a "Disturbed" subset with Fragmented Forest and Plantation landscapes
+disturbed <- subset(metadata_common, landscape %in% c("Forest Fragments", "Plantations"))
+#disturbed<-as.data.frame(disturbed)
+
+
+disturbed1 <- glmer(tryp_inf ~ shannon + density_mars + density_prse + (1|capture_site), family = binomial, data = disturbed, na.action = na.fail)
+check_collinearity(disturbed1)
+summary(disturbed1)
+tab_model(disturbed1)
+dredge(disturbed1)
+
+dat.effects_d1 <- effect("shannon", mod = disturbed1, xlevels = list(shannon = seq(0, 1.5, length.out = 100)))
+dat.effects_d1 <- as.data.frame(dat.effects_d1)
+
+
+p_d1 <- ggplot() +
+  geom_point(data = disturbed, aes(x = shannon, y = tryp_inf), color = "#BA324F", shape = 19, size = 5) +
+  geom_ribbon(data = dat.effects_d1, aes(x = shannon, ymin = lower, ymax = upper), alpha = 0.2, fill = "lightgrey") +
+  geom_line(data = dat.effects_d1, aes(x = shannon, y = fit), size = 1) +
+  scale_x_continuous(limits = c(0.5, 1.5)) +
+  theme_classic() + 
+  theme(
+    legend.position = "none",
+    axis.title = element_text(face = "bold", size = 16),
+    axis.text = element_text(size = 12),
+    plot.title = element_text(hjust = 0.5, size = 22, face = "bold")
+  ) +
+  xlab("Shannon Species Diversity") +
+  ylab("Trypanosoma Infection Probability") +
+  ggtitle("") +
+  annotate(geom = "text", x = 0.5, y = 0.9, label = "", color = "black", size = 8)
+p_d1
+
+dat.effects_d2 <- effect("density_mars", mod = disturbed1, xlevels = list(density_mars = seq(0, 3.5, length.out = 100)))
+dat.effects_d2 <- as.data.frame(dat.effects_d2)
+
+
+p_d2 <- ggplot() +
+  geom_point(data = disturbed, aes(x = density_mars, y = tryp_inf), color = "#BA324F", shape = 19, size = 5) +
+  geom_ribbon(data = dat.effects_d2, aes(x = density_mars, ymin = lower, ymax = upper), alpha = 0.2, fill = "lightgrey") +
+  geom_line(data = dat.effects_d2, aes(x = density_mars, y = fit), size = 1) +
+  theme_classic() +
+  theme(
+    legend.position = "none",
+    axis.title = element_text(face = "bold", size = 16),
+    axis.text = element_text(size = 12),
+    axis.text.y = element_blank(),  # Hiding y-axis text as in the previous example
+    plot.title = element_text(hjust = 0.5, size = 22, face = "bold")
+  ) +
+  xlab("Marsupial Density") +
+  ylab("") +  # Updated y-axis label for consistency
+  ggtitle("") +
+  annotate(geom = "text", x = 0, y = 0.9, label = "", color = "black", size = 8)
+p_d2
+
+dat.effects_d3 <- effect("density_prse", mod = disturbed1, xlevels = list(density_prse = seq(0, 8, length.out = 100)))
+dat.effects_d3 <- as.data.frame(dat.effects_d3)
+
+p_d3 <- ggplot() +
+  geom_point(data = disturbed, aes(x = density_prse, y = tryp_inf), color = "#BA324F", shape = 19, size = 5) +
+  geom_ribbon(data = dat.effects_d3, aes(x = density_prse, ymin = lower, ymax = upper), alpha = 0.2, fill = "lightgrey") +
+  geom_line(data = dat.effects_d3, aes(x = density_prse, y = fit), size = 1, linetype="dashed") + 
+  scale_color_manual(values = c("#D4D861", "#6A0909")) +
+  #scale_y_continuous(breaks = c(0, 1)) +  # Set breaks to only 0 and 1
+  theme_classic() + 
+  theme(legend.position = "none") +
+  xlab("Density of P. semispinosus") +
+  ylab("") +
+  ggtitle("") +
+  annotate(geom = "text", x = 0, y = 0.9, label = "", color = "black", size = 8) +
+  theme(
+    axis.title = element_text(face = "bold", size = 16),
+    axis.text = element_text(size = 12),
+    axis.text.y=element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 22, face = "bold")
+  )
+p_d3
+
+
+grid.arrange(p_ud1, p_ud2, p_ud3, nrow=1)
+             
+grid.arrange(p_d1, p_d2, p_d3, nrow=1)
+
+#export 1200 / 400
+
+#P.SEMI
+
+## investigating factors that drive infection likelihood in P. semispinosus
+
+
+m1.1 <- glmer(tryp_inf ~ shannon + density_mars + GenDiv + (1 | capture_site), data = Psemi, family = binomial, na.action = na.fail)
+check_collinearity(m1.1)
+summary(m1.1)
+tab_model(m1.1)
+dredge_m1.1<-dredge(m1.1)
+summary(model.avg(dredge_m1.1, subset = delta <= 2))
+
+
+dat.effects_m1 <- effect("GenDiv", mod = m1.1, xlevels = list(GenDiv = seq(0.25, 1, length.out = 100)))
+dat.effects_m1 <- as.data.frame(dat.effects_m1)
+
+p_m1 <- ggplot() +
+  geom_point(data = Psemi, aes(x = GenDiv, y = tryp_inf, col = landscape), shape = 19, size = 5) +
+  geom_ribbon(data = dat.effects_m1, aes(x = GenDiv, ymin = lower, ymax = upper), alpha = 0.2, fill = "lightgrey") +
+  geom_line(data = dat.effects_m1, aes(x = GenDiv, y = fit), size = 1) + 
+  scale_color_manual(values = c("#4A6240", "#A7ECE8", "#D8C444", "#6A0909")) +
+  scale_y_continuous(breaks = c(0, 1)) +  # Set breaks to only 0 and 1
+  theme_classic() + 
+  theme(legend.position = "none") +
+  xlab("Genetic Diversity") +
+  ylab("") +
+  ggtitle("") +
+  annotate(geom = "text", x = 0.25, y = 0.9, label = "", color = "black", size = 8) +
+  theme(
+    axis.title = element_text(face = "bold", size = 16),
+    axis.text = element_text(size = 12),
+    axis.text.y=element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 22, face = "bold")
+  )
+
+p_m1
+
+dat.effects_m2 <- effect("density_mars", mod = m1.1, xlevels = list(density_mars = seq(0, 3.5, length.out = 100)))
+dat.effects_m2 <- as.data.frame(dat.effects_m2)
+
+p_m2 <- ggplot() +
+  geom_point(data = Psemi, aes(x = density_mars, y = tryp_inf, col = landscape), shape = 19, size = 5) +
+  geom_ribbon(data = dat.effects_m2, aes(x = density_mars, ymin = lower, ymax = upper), alpha = 0.2, fill = "lightgrey") +
+  geom_line(data = dat.effects_m2, aes(x = density_mars, y = fit), size = 1) + 
+  scale_color_manual(values = c("#4A6240", "#A7ECE8", "#D8C444", "#6A0909")) +
+  scale_y_continuous(breaks = c(0, 1)) +  # Set breaks to only 0 and 1
+  theme_classic() + 
+  theme(legend.position = "none") +
+  xlab("Marsupial Density") +
+  ylab("") +
+  ggtitle("") +
+  annotate(geom = "text", x = 0, y = 0.9, label = "", color = "black", size = 8) +
+  theme(
+    axis.title = element_text(face = "bold", size = 16),
+    axis.text = element_text(size = 12),
+    axis.text.y=element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 22, face = "bold")
+  )
+
+p_m2
+
+dat.effects_m3 <- effect("shannon", mod = m1.1, xlevels = list(shannon = seq(0, 1.5, length.out = 100)))
+dat.effects_m3 <- as.data.frame(dat.effects_m3)
+
+p_m3 <- ggplot() +
+  geom_point(data = Psemi, aes(x = shannon, y = tryp_inf, col = landscape), shape = 19, size = 5) +
+  geom_ribbon(data = dat.effects_m3, aes(x = shannon, ymin = lower, ymax = upper), alpha = 0.2, fill = "lightgrey") +
+  geom_line(data = dat.effects_m3, aes(x = shannon, y = fit), size = 1, linetype="dashed") + 
+  scale_color_manual(values = c("#4A6240", "#A7ECE8", "#D8C444", "#6A0909")) +
+  #scale_y_continuous(breaks = c(0, 1)) +  # Set breaks to only 0 and 1
+  theme_classic() + 
+  theme(legend.position = "none") +
+  xlab("Shannon Species Diversity") +
+  ylab("Tryp. Inf. Probability of P. semispinosus") +
+  ggtitle("") +
+  annotate(geom = "text", x = 0, y = 0.9, label = "", color = "black", size = 8) +
+  theme(
+    axis.title = element_text(face = "bold", size = 16),
+    axis.text = element_text(size = 12),
+    #axis.text.y=element_blank(),
+    axis.text.y = element_text(size = 12),
+    plot.title = element_text(hjust = 0.5, size = 22, face = "bold")
+  )
+
+p_m3
+
+
+grid.arrange (p_m3,p_m2,p_m1, nrow=1)
+#export 1400 / 500
+
+```
